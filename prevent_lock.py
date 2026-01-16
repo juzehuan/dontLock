@@ -177,9 +177,16 @@ class PreventLockApp:
         while self.running:
             try:
                 # 调用Windows API防止锁屏
-                # ES_CONTINUOUS | ES_DISPLAY_REQUIRED = 0x80000002
-                ctypes.windll.kernel32.SetThreadExecutionState(0x80000002)
-                self.log("已重置系统锁屏计时器")
+                # ES_CONTINUOUS = 0x80000000 - 持续设置
+                # ES_SYSTEM_REQUIRED = 0x00000001 - 防止系统睡眠
+                # ES_DISPLAY_REQUIRED = 0x00000002 - 防止显示器关闭
+                # ES_AWAYMODE_REQUIRED = 0x00000040 - 防止系统进入离开模式（适用于媒体播放）
+                result = ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001 | 0x00000002 | 0x00000040)
+                if result == 0:
+                    error_code = ctypes.GetLastError()
+                    self.log(f"SetThreadExecutionState 失败，错误码: {error_code}")
+                else:
+                    self.log("已重置系统锁屏计时器")
                 time.sleep(self.interval)
             except Exception as e:
                 self.log(f"防止锁屏出错: {e}")
@@ -217,7 +224,13 @@ class PreventLockApp:
                 self.thread.join(timeout=1)
 
             # 恢复系统默认设置
-            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)  # ES_CONTINUOUS
+            # 只设置 ES_CONTINUOUS 表示恢复默认行为
+            result = ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            if result == 0:
+                error_code = ctypes.GetLastError()
+                self.log(f"恢复系统默认设置失败，错误码: {error_code}")
+            else:
+                self.log("已恢复系统默认设置")
 
             self.status_var.set("已停止")
             self.status_color.set("red")
