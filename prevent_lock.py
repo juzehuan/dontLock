@@ -347,6 +347,21 @@ class PreventLockApp:
         # 初始隐藏窗口，只显示托盘图标
         self.hide_window()
 
+        # 自动开始防止锁屏功能
+        self.log("软件启动，自动开始防止锁屏功能")
+        # 设置默认间隔为60秒
+        self.interval = DEFAULT_INTERVAL
+        self.interval_var.set(str(DEFAULT_INTERVAL))
+        # 开始防止锁屏
+        self.running = True
+        self.thread = threading.Thread(target=self.prevent_lock, daemon=True)
+        self.thread.start()
+
+        self.status_var.set("运行中")
+        self.status_color.set("green")
+        self.start_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+
         # 运行主循环
         self.root.mainloop()
 
